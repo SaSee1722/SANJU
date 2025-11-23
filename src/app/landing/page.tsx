@@ -1,63 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
-// Professional department icons
-const DepartmentIcon = ({ type }: { type: string }) => {
-  const icons = {
-    CSE: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-        <line x1="8" y1="21" x2="16" y2="21" />
-        <line x1="12" y1="17" x2="12" y2="21" />
-      </svg>
-    ),
-    ECE: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-      </svg>
-    ),
-    EEE: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="5" />
-        <line x1="12" y1="1" x2="12" y2="3" />
-        <line x1="12" y1="21" x2="12" y2="23" />
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-        <line x1="1" y1="12" x2="3" y2="12" />
-        <line x1="21" y1="12" x2="23" y2="12" />
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-      </svg>
-    ),
-    MECH: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-      </svg>
-    ),
-    CIVIL: (
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 21h18M6 18V9M10 18V9M14 18V9M18 18V9M3 9l9-7 9 7" />
-      </svg>
-    ),
-  };
-  return icons[type as keyof typeof icons] || null;
-};
+// Icons
+const MenuIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+);
 
-const STREAMS = [
-  { name: "CSE", color: "from-blue-600 to-blue-800" },
-  { name: "ECE", color: "from-purple-600 to-purple-800" },
-  { name: "EEE", color: "from-amber-500 to-amber-700" },
-  { name: "MECH", color: "from-red-600 to-red-800" },
-  { name: "CIVIL", color: "from-green-600 to-green-800" },
-];
+const CheckIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+    <polyline points="12 5 19 12 12 19"></polyline>
+  </svg>
+);
 
 export default function LandingPage() {
   const router = useRouter();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -71,184 +49,192 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
-        {/* Animated Background Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute top-40 right-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }} />
-        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
-
-        <div className="relative z-10 max-w-5xl animate-fade-in">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 mb-6 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <span className="text-sm font-medium text-muted-foreground">Next-Gen Leave Management</span>
+    <main className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/10">
+      {/* Navbar */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md border-b border-border py-4" : "bg-transparent py-6"}`}>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">L</div>
+            <span className="text-xl font-bold tracking-tight">LeaveWeb</span>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+            <a href="#features" className="hover:text-primary transition-colors">Features</a>
+            <a href="#departments" className="hover:text-primary transition-colors">Departments</a>
+            <a href="#about" className="hover:text-primary transition-colors">About</a>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6">
-            Modern{" "}
-            <span className="bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
-              Leave Management
-            </span>
-            <br />
-            for Engineering Colleges
-          </h1>
-
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Streamline your leave approval process with department-based access control,
-            real-time tracking, and a beautiful interface that everyone will love.
-          </p>
-
-          <div className="flex gap-4 flex-col sm:flex-row justify-center">
-            <Link
-              href="/login"
-              className="group rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all"
-            >
-              Get Started
-              <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
+              Log in
             </Link>
-            <a
-              href="#features"
-              className="rounded-xl bg-card border border-border px-8 py-4 text-base font-semibold text-foreground hover:bg-accent hover:text-accent-foreground transition-all"
-            >
-              Learn more
-            </a>
+            <Link href="/login" className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+              Get Started
+            </Link>
           </div>
         </div>
+      </nav>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          <div className="relative z-10 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium mb-6">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+              New Academic Year Ready
+            </div>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6 text-primary">
+              Simplify Campus <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Leave Management</span>
+            </h1>
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
+              The modern, efficient way for engineering colleges to manage staff and student leave requests. Paperless, instant, and secure.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full text-base font-semibold hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 hover:translate-y-[-2px]">
+                Start Now <ArrowRightIcon />
+              </Link>
+              <a href="#features" className="inline-flex items-center justify-center gap-2 bg-white border border-border text-foreground px-8 py-4 rounded-full text-base font-semibold hover:bg-secondary transition-all hover:translate-y-[-2px]">
+                View Features
+              </a>
+            </div>
+            
+            <div className="mt-12 flex items-center gap-8 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CheckIcon /> <span>Instant Setup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckIcon /> <span>Secure Data</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckIcon /> <span>24/7 Access</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative lg:h-[600px] w-full flex items-center justify-center animate-slide-in-right">
+            {/* Abstract Composition */}
+            <div className="relative w-full h-full max-w-md mx-auto">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+               <div className="absolute top-0 -left-4 w-64 h-64 bg-cyan-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+               <div className="absolute -bottom-8 left-20 w-64 h-64 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+               
+               <div className="relative bg-white/50 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-6 transform rotate-[-6deg] hover:rotate-0 transition-all duration-500 z-10">
+                  <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-4">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">JD</div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">John Doe</h3>
+                      <p className="text-xs text-gray-500">Senior Lecturer, CSE</p>
+                    </div>
+                    <span className="ml-auto px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Approved</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-2 bg-gray-100 rounded w-3/4"></div>
+                    <div className="h-2 bg-gray-100 rounded w-1/2"></div>
+                    <div className="h-2 bg-gray-100 rounded w-5/6"></div>
+                  </div>
+               </div>
+
+               <div className="absolute -bottom-10 -right-10 bg-white p-6 rounded-2xl shadow-xl z-20 animate-float">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                      <CheckIcon />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">Request Approved</p>
+                      <p className="text-xs text-gray-500">Just now</p>
+                    </div>
+                  </div>
+               </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Departments Section */}
-      <section className="relative z-10 mx-auto w-full max-w-7xl px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Department-Based Access Control
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Each department has its own isolated workspace. Admins and staff only see requests from their department.
-          </p>
-        </div>
+      <section id="departments" className="py-24 bg-secondary/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary">Department-Based Control</h2>
+            <p className="text-muted-foreground">Isolated workspaces for every department ensuring data privacy and streamlined management.</p>
+          </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {STREAMS.map((stream, index) => (
-            <div
-              key={stream.name}
-              className="bg-card border border-border rounded-2xl p-6 text-center hover:scale-105 transition-all cursor-pointer group shadow-sm hover:shadow-md"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="mb-3 flex items-center justify-center text-foreground group-hover:scale-110 transition-transform">
-                <DepartmentIcon type={stream.name} />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL'].map((dept, i) => (
+              <div key={dept} className="group bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-border/50 hover:-translate-y-1 text-center">
+                <div className="w-16 h-16 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <span className="font-bold text-xl">{dept[0]}</span>
+                </div>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{dept}</h3>
+                <p className="text-xs text-muted-foreground">Engineering</p>
               </div>
-              <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold text-white bg-gradient-to-r ${stream.color}`}>
-                {stream.name}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section
-        id="features"
-        className="relative z-10 mx-auto w-full max-w-7xl px-6 py-16"
-      >
-        <h2 className="text-center text-3xl md:text-4xl font-bold mb-12">
-          Why colleges choose{" "}
-          <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            LeaveWeb
-          </span>
-        </h2>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              title: "Paperless & Fast",
-              desc: "Submit and approve leave requests in seconds, not days.",
-              emoji: "📄",
-              gradient: "from-blue-500/10 to-blue-600/10 text-blue-500",
-            },
-            {
-              title: "Real-time Tracking",
-              desc: "See request status and history instantly on any device.",
-              emoji: "🚀",
-              gradient: "from-purple-500/10 to-purple-600/10 text-purple-500",
-            },
-            {
-              title: "Secure Storage",
-              desc: "All documents are stored safely in Supabase storage.",
-              emoji: "🔒",
-              gradient: "from-emerald-500/10 to-emerald-600/10 text-emerald-500",
-            },
-            {
-              title: "Department Isolation",
-              desc: "Each department has complete data privacy and isolation.",
-              emoji: "🏢",
-              gradient: "from-amber-500/10 to-amber-600/10 text-amber-500",
-            },
-            {
-              title: "Modern Interface",
-              desc: "Beautiful glassmorphism design with smooth animations.",
-              emoji: "✨",
-              gradient: "from-pink-500/10 to-pink-600/10 text-pink-500",
-            },
-            {
-              title: "Mobile-friendly",
-              desc: "Optimised for phones, tablets and desktops.",
-              emoji: "📱",
-              gradient: "from-cyan-500/10 to-cyan-600/10 text-cyan-500",
-            },
-          ].map((feature, index) => (
-            <div
-              key={feature.title}
-              className={`bg-card border border-border rounded-2xl p-6 hover:scale-105 transition-all group animate-fade-in shadow-sm hover:shadow-md`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
-                {feature.emoji}
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+      {/* Features Grid */}
+      <section id="features" className="py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="col-span-1 md:col-span-1">
+              <h2 className="text-3xl font-bold mb-6 text-primary">Why Choose LeaveWeb?</h2>
+              <p className="text-muted-foreground mb-8">
+                Designed specifically for educational institutions to handle the complex hierarchy of approvals and record-keeping.
+              </p>
+              <Link href="/login" className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1">
+                Learn more about features <ArrowRightIcon />
+              </Link>
             </div>
-          ))}
+            <div className="col-span-2 grid sm:grid-cols-2 gap-8">
+              {[
+                { title: "Paperless Workflow", desc: "Eliminate physical forms and manual tracking completely." },
+                { title: "Real-time Notifications", desc: "Get instant updates via email and dashboard alerts." },
+                { title: "Role-based Access", desc: "Separate views for Staff, HODs, and Principals." },
+                { title: "Analytics Dashboard", desc: "Visual insights into leave patterns and statistics." }
+              ].map((feature, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-600">
+                    <CheckIcon />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 mx-auto w-full max-w-4xl px-6 py-20 text-center">
-        <div className="bg-card border border-border rounded-3xl p-12 shadow-xl">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to modernize your leave management?
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join colleges that have already switched to a faster, more efficient way of managing student leaves.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all"
-          >
-            Get Started for Free
+      {/* CTA */}
+      <section className="py-24 bg-primary text-white px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-5xl font-bold mb-8">Ready to modernize your campus?</h2>
+          <p className="text-blue-100 text-lg mb-10 max-w-2xl mx-auto">Join the growing number of institutions moving towards digital transformation.</p>
+          <Link href="/login" className="bg-white text-primary px-10 py-4 rounded-full text-lg font-bold hover:bg-gray-100 transition-all shadow-2xl inline-block">
+            Get Started Today
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-border px-6 py-8 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} LeaveWeb. Built with Next.js & Supabase.</p>
-        <p className="mt-2 text-xs text-muted-foreground/70">
-          Featuring department-based access control for CSE, ECE, EEE, MECH & CIVIL
-        </p>
+      <footer className="bg-slate-900 text-slate-400 py-12 px-6 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-slate-700 rounded flex items-center justify-center text-white text-xs font-bold">L</div>
+            <span className="text-white font-bold">LeaveWeb</span>
+          </div>
+          <div className="text-sm">
+            &copy; {new Date().getFullYear()} LeaveWeb System. All rights reserved.
+          </div>
+          <div className="flex gap-6 text-sm">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Contact</a>
+          </div>
+        </div>
       </footer>
     </main>
   );
