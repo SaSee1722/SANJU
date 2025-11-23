@@ -17,30 +17,31 @@ export default function Hero() {
                 <AnimatedSection delay={0.2}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8">
                         <Sparkles className="w-4 h-4 text-yellow-400" />
-                        <span className="text-sm text-gray-300">Welcome to my creative space</span>
+                        <span className="text-sm text-gray-300">Streamline your workflow</span>
                     </div>
                 </AnimatedSection>
 
                 <AnimatedSection delay={0.4}>
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6">
-                        <span className="block text-white">Crafting Digital</span>
-                        <span className="text-gradient">Experiences</span>
+                        <span className="block text-white">Effortless Leave</span>
+                        <span className="text-gradient">Management</span>
                     </h1>
                 </AnimatedSection>
 
                 <AnimatedSection delay={0.6}>
                     <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-                        I build immersive web applications that blend aesthetic design with robust engineering.
+                        Simplify leave requests, approvals, and tracking for your entire organization.
+                        Experience the future of workforce management.
                     </p>
                 </AnimatedSection>
 
                 <AnimatedSection delay={0.8}>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button className="px-8 py-4 rounded-full bg-white text-black font-medium hover:scale-105 transition-transform duration-300 shadow-glow">
-                            View My Work
+                            Login Portal
                         </button>
                         <button className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm">
-                            Contact Me
+                            Learn More
                         </button>
                     </div>
                 </AnimatedSection>

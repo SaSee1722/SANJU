@@ -1,41 +1,41 @@
 "use client";
 
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { Code2, Palette, Rocket, Zap } from "lucide-react";
+import { Calendar, CheckCircle, Shield, Bell } from "lucide-react";
 
 const features = [
     {
-        icon: <Palette className="w-6 h-6 text-purple-400" />,
-        title: "UI/UX Design",
-        description: "Creating intuitive and visually stunning interfaces that users love.",
+        icon: <Shield className="w-6 h-6 text-purple-400" />,
+        title: "Role-Based Access",
+        description: "Secure access controls for Staff, Program Coordinators, and Admins.",
     },
     {
-        icon: <Code2 className="w-6 h-6 text-blue-400" />,
-        title: "Full Stack Dev",
-        description: "Building robust applications with modern technologies like Next.js and Supabase.",
+        icon: <CheckCircle className="w-6 h-6 text-blue-400" />,
+        title: "Multi-Level Approval",
+        description: "Streamlined workflow from staff request to final admin approval.",
     },
     {
-        icon: <Zap className="w-6 h-6 text-yellow-400" />,
-        title: "Performance",
-        description: "Optimizing for speed and efficiency to ensure smooth user experiences.",
+        icon: <Bell className="w-6 h-6 text-yellow-400" />,
+        title: "Real-time Notifications",
+        description: "Instant alerts for leave status updates and pending actions.",
     },
     {
-        icon: <Rocket className="w-6 h-6 text-pink-400" />,
-        title: "Scalability",
-        description: "Designing systems that grow with your business needs.",
+        icon: <Calendar className="w-6 h-6 text-pink-400" />,
+        title: "Calendar View",
+        description: "Visual overview of team availability and leave schedules.",
     },
 ];
 
-export default function About() {
+export default function Features() {
     return (
-        <section className="py-24 relative" id="about">
+        <section className="py-24 relative" id="features">
             <div className="container-custom">
                 <AnimatedSection className="mb-16 text-center">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6">
-                        Passion for <span className="text-gradient-blue">Excellence</span>
+                        Powerful <span className="text-gradient-blue">Features</span>
                     </h2>
                     <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-                        I combine technical expertise with creative vision to deliver exceptional digital solutions.
+                        Everything you need to manage workforce leave efficiently and transparently.
                     </p>
                 </AnimatedSection>
 
