@@ -45,13 +45,27 @@ export default function Hero() {
                         </button>
                     </div>
                 </AnimatedSection>
+
+                {/* Dashboard Mockup */}
+                <AnimatedSection delay={1.0} className="mt-16">
+                    <div className="relative max-w-5xl mx-auto">
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 blur-3xl" />
+                        <div className="relative glass-strong rounded-2xl p-2 shadow-2xl">
+                            <img
+                                src="/dashboard-mockup.png"
+                                alt="Leave Management Dashboard"
+                                className="w-full h-auto rounded-xl"
+                            />
+                        </div>
+                    </div>
+                </AnimatedSection>
             </div>
 
             {/* Scroll Indicator */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2, duration: 0.8 }}
+                transition={{ delay: 1.4, duration: 0.8 }}
                 className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 flex flex-col items-center gap-2"
             >
                 <span className="text-xs uppercase tracking-widest">Scroll</span>
