@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "1059929650076",
+        "project_id": "leavex-b68ca",
+        "storage_bucket": "leavex-b68ca.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:1059929650076:android:5044951a7aea0e6ad5ce59",
+                "android_client_info": {
+                    "package_name": "com.leaveapp.web"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyBTKpEVCGjk8jBI7pTRXj0s8MtU6Oidw-4"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
