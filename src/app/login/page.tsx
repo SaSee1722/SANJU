@@ -1,24 +1,14 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/lib/supabaseClient";
+import { Loader2, Mail, Lock, User, ArrowRight, BookOpen, GraduationCap, School } from "lucide-react";
 
 type AuthMode = "signin" | "signup";
 type Stream = "CSE" | "ECE" | "EEE" | "MECH" | "CIVIL";
-
-const STREAMS: Stream[] = ["CSE", "ECE", "EEE", "MECH", "CIVIL"];
-
-const getStreamColor = (stream: Stream) => {
-  const colors = {
-    CSE: "from-blue-600 to-blue-800",
-    ECE: "from-purple-600 to-purple-800",
-    EEE: "from-amber-500 to-amber-700",
-    MECH: "from-red-600 to-red-800",
-    CIVIL: "from-green-600 to-green-800",
-  };
-  return colors[stream];
-};
 
 export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -51,6 +41,7 @@ export default function LoginPage() {
         router.replace("/staff");
         return;
       }
+      // Fallback to DB check
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -59,6 +50,7 @@ export default function LoginPage() {
       const dbRole = profile?.role;
       if (dbRole === "admin") router.replace("/admin");
       else if (dbRole === "staff") router.replace("/staff");
+      else if (dbRole === "pc") router.replace("/pc");
     };
     checkUser();
   }, [router]);
@@ -68,309 +60,190 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (mode === "signin") {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        setError(signInError.message);
-        setLoading(false);
-        return;
-      }
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
-        setError("Unable to get user after sign in.");
-        setLoading(false);
-        return;
-      }
+    try {
+      if (mode === "signin") {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) throw signInError;
 
-      // SELF-HEALING: Check if profile exists, if not create it
-      let { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+        const user = signInData.user;
+        if (!user) throw new Error("No user found");
 
-      if (!profile) {
-        console.log("Profile missing for user, creating one now...");
-        // Create missing profile
-        const meta = user.user_metadata || {};
-        const { error: createError } = await supabase
-          .from("profiles")
-          .insert({
-            id: user.id,
-            email: user.email!,
-            full_name: meta.full_name || user.email!,
-            role: meta.role || "staff",
-            stream: meta.stream || "CSE"
-          });
-
-        if (createError) {
-          console.error("Failed to auto-create profile:", createError);
-          // Continue anyway, maybe the trigger worked in parallel
+        const metaRole = (user.user_metadata as any)?.role;
+        if (metaRole) {
+          if (metaRole === "admin") router.replace("/admin");
+          else if (metaRole === "pc") router.replace("/pc");
+          else router.replace("/staff"); // Default
+        } else {
+          // Fallback
+          router.replace("/staff");
         }
 
-        // Fetch again
-        const { data: newProfile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        profile = newProfile;
-      }
-
-      const metaRole = (user.user_metadata as any)?.role;
-      if (metaRole === "admin") {
-        router.replace("/admin");
-      } else if (metaRole === "pc") {
-        router.replace("/pc");
-      } else if (metaRole === "staff") {
-        router.replace("/staff");
       } else {
-        if (profile?.role === "admin") router.replace("/admin");
-        else if (profile?.role === "pc") router.replace("/pc");
-        else router.replace("/staff");
-      }
-      setLoading(false);
-      return;
-    }
+        // Sign Up
+        const redirectTo = Capacitor.isNativePlatform()
+          ? "com.leaveapp.web://login-callback"
+          : `${window.location.origin}/login`;
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { role, full_name: name, stream },
-      },
-    });
-    if (signUpError) {
-      const message = signUpError.message ?? "Unable to sign up";
-      const status = (signUpError as any).status;
-
-      if (
-        status === 429 ||
-        message.toLowerCase().includes("security purposes") ||
-        message.toLowerCase().includes("too many requests")
-      ) {
-        setError(
-          "You have tried to sign up too many times. Please wait a bit and try again, or use Sign in if you already created this account."
-        );
-        setLoading(false);
-        return;
-      }
-
-      if (message.toLowerCase().includes("already registered")) {
-        setError("This email is already registered. Please sign in instead.");
-        setMode("signin");
-        setLoading(false);
-        return;
-      }
-
-      setError(message);
-      setLoading(false);
-      return;
-    }
-    const user = signUpData.user;
-    if (!user) {
-      setError("Unable to create user.");
-      setLoading(false);
-      return;
-    }
-
-    // WORKAROUND: Manually create profile entry if trigger fails
-    // This ensures the profile is created even if the database trigger has permission issues
-    try {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: user.id,
-          email: email,
-          full_name: name,
-          role: role,
-          stream: stream,
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectTo,
+            data: {
+              full_name: name,
+              role: role,
+              stream: stream,
+            },
+          },
         });
 
-      // Only log profile errors, don't fail the signup
-      if (profileError) {
-        console.warn("Profile creation warning:", profileError.message);
-        // The trigger might have already created it, so ignore "duplicate key" errors
-        if (!profileError.message.toLowerCase().includes("duplicate")) {
-          console.error("Profile creation failed, but signup succeeded:", profileError);
+        if (signUpError) throw signUpError;
+
+        if (signUpData.user) {
+          // Create profile manually as backup
+          const { error: profileError } = await supabase.from("profiles").upsert({
+            id: signUpData.user.id,
+            full_name: name,
+            role: role,
+            stream: stream
+          });
+          if (profileError) console.error("Profile creation warning:", profileError);
+
+          setMessage("Account created! Please check your email to confirm.");
+          setMode("signin");
         }
       }
-    } catch (profileException) {
-      // Don't fail signup even if profile creation fails
-      console.warn("Profile creation exception (signup still succeeded):", profileException);
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-    setMessage("Account created! Check your email and confirm before signing in.");
-    setMode("signin");
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background relative overflow-hidden">
-      {/* Animated Background Gradients */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "1s" }} />
+    <div className="min-h-screen w-full flex items-center justify-center bg-neutral-950 p-4 relative overflow-hidden">
+      {/* Background Ambience */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 animate-fade-in">
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-2xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              {mode === "signin" ? "Welcome Back" : "Create Account"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {mode === "signin"
-                ? "Sign in to access your dashboard"
-                : "Join the modern leave management system"}
-            </p>
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md bg-neutral-900/80 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl relative z-10"
+      >
+        {/* Header */}
+        <div className="p-8 pb-0 text-center">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            {mode === "signin" ? "Welcome Back" : "Create Account"}
+          </h2>
+          <p className="text-neutral-400 text-sm mt-2">
+            {mode === "signin" ? "Enter your credentials to access your account" : "Join the platform to manage leave requests"}
+          </p>
+        </div>
 
-          {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-muted/50 rounded-lg">
-            <button
-              type="button"
-              className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${mode === "signin"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-              onClick={() => setMode("signin")}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${mode === "signup"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
-              onClick={() => setMode("signup")}
-            >
-              Sign up
-            </button>
-          </div>
-
+        {/* Form */}
+        <div className="p-8 pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center">
+                {message}
+              </div>
+            )}
+
             {mode === "signup" && (
-              <>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                    Full name
-                  </label>
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="relative group">
+                  <User className="absolute left-3 top-3.5 w-5 h-5 text-neutral-500 group-focus-within:text-white transition-colors" />
                   <input
                     type="text"
+                    placeholder="Full Name"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-purple-500 transition-all placeholder:text-neutral-600"
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                    placeholder="Enter your full name"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                      Role
-                    </label>
-                    <select
-                      value={role}
-                      onChange={(event) => {
-                        const val = event.target.value;
-                        setRole(val === "admin" ? "admin" : val === "pc" ? "pc" : "staff");
-                      }}
-                      className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all cursor-pointer"
-                    >
-                      <option value="staff">Advisor</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                      Department
-                    </label>
-                    <select
-                      value={stream}
-                      onChange={(event) => setStream(event.target.value as Stream)}
-                      className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all cursor-pointer"
-                    >
-                      {STREAMS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={stream}
+                    onChange={(e) => setStream(e.target.value as Stream)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none text-sm"
+                  >
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EEE">EEE</option>
+                    <option value="MECH">MECH</option>
+                    <option value="CIVIL">CIVIL</option>
+                  </select>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as any)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-purple-500 transition-all appearance-none text-sm"
+                  >
+                    <option value="staff">Staff</option>
+                    <option value="pc">PC</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
-
-                {/* Stream Preview Badge */}
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
-                  <span className="text-xs text-muted-foreground">Your department:</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getStreamColor(stream)}`}>
-                    {stream}
-                  </span>
-                </div>
-              </>
+              </div>
             )}
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Email
-              </label>
+            <div className="relative group">
+              <Mail className="absolute left-3 top-3.5 w-5 h-5 text-neutral-500 group-focus-within:text-white transition-colors" />
               <input
                 type="email"
+                placeholder="Email Address"
+                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-purple-500 transition-all placeholder:text-neutral-600"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                placeholder="you@example.com"
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                Password
-              </label>
+            <div className="relative group">
+              <Lock className="absolute left-3 top-3.5 w-5 h-5 text-neutral-500 group-focus-within:text-white transition-colors" />
               <input
                 type="password"
+                placeholder="Password"
+                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-purple-500 transition-all placeholder:text-neutral-600"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                placeholder="••••••••"
               />
             </div>
-
-            {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            {message && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <p className="text-sm text-emerald-500">{message}</p>
-              </div>
-            )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-lg hover:shadow-glow hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 transition-all"
+              className="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-neutral-200 transition-colors shadow-lg shadow-white/5 flex items-center justify-center mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading
-                ? "Please wait..."
-                : mode === "signin"
-                  ? "Sign in"
-                  : "Create account"}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === "signin" ? "Sign In" : "Create Account")}
             </button>
           </form>
         </div>
-      </div>
+
+        {/* Footer */}
+        <div className="bg-black/30 p-6 text-center border-t border-white/5">
+          <p className="text-neutral-400 text-sm">
+            {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
+            <button
+              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              className="text-white font-medium ml-2 hover:underline focus:outline-none"
+            >
+              {mode === "signin" ? "Sign Up" : "Sign In"}
+            </button>
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }
