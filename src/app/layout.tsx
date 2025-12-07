@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeaveWeb - Modern Leave Management System",
+  title: "LeaveX - Modern Leave Management System",
   description: "Department-based leave management for engineering colleges with real-time tracking and beautiful UI",
 };
 

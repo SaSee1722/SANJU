@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import StatusBadge from "@/components/StatusBadge";
+import NotificationBell from "@/components/NotificationBell";
 import { UsersIcon, UserIcon, BriefcaseIcon, FileTextIcon } from "@/components/icons";
 
 type Stream = "CSE" | "ECE" | "EEE" | "MECH" | "CIVIL";
@@ -109,11 +110,14 @@ export default function AdminOverview() {
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard Overview</h1>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            {getGreeting()}, <span className="font-semibold bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">{userName}</span>! Here's what's happening in your department.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard Overview</h1>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {getGreeting()}, <span className="font-semibold bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">{userName}</span>! Here's what's happening in your department.
+            </p>
+          </div>
+          <NotificationBell />
         </div>
 
         {/* Stats Grid */}

@@ -16,7 +16,7 @@ export default function Navbar() {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                     <LayoutGrid className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold text-white tracking-tight">LeaveApp</span>
+                <span className="text-xl font-bold text-white tracking-tight">LeaveX</span>
             </div>
 
             <Link href="/login">

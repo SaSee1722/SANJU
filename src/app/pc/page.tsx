@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import StatusBadge from "@/components/StatusBadge";
+import NotificationBell from "@/components/NotificationBell";
 
 type Stream = "CSE" | "ECE" | "EEE" | "MECH" | "CIVIL";
 type LeaveStatus = "pending_pc" | "pending_admin" | "approved" | "declined";
@@ -292,13 +293,16 @@ export default function PCPage() {
                             </div>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm"
-                    >
-                        Sign out
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <NotificationBell />
+                        <button
+                            type="button"
+                            onClick={handleSignOut}
+                            className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm"
+                        >
+                            Sign out
+                        </button>
+                    </div>
                 </header>
 
                 {/* Messages */}

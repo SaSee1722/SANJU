@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.leaveapp.web',
-  appName: 'LeaveApp',
+  appName: 'LeaveX',
   webDir: 'out'
 };
 
