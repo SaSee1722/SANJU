@@ -3,7 +3,12 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import StatusBadge from "@/components/StatusBadge";
+import { motion } from "framer-motion";
+import {
+  FileText, Clock, CheckCircle, XCircle, LogOut,
+  Upload, Calendar, User, Search, Trash2,
+  BookOpen, Hash, Percent, Award, ChevronRight
+} from "lucide-react";
 
 type Stream = "CSE" | "ECE" | "EEE" | "MECH" | "CIVIL";
 type LeaveStatus = "pending_pc" | "pending_admin" | "approved" | "declined";
@@ -28,22 +33,32 @@ type LeaveRequest = {
   };
 };
 
-const getStreamColor = (stream: Stream) => {
-  const colors = {
-    CSE: "from-blue-600 to-blue-800",
-    ECE: "from-purple-600 to-purple-800",
+const getStreamGradient = (stream: Stream) => {
+  const gradients = {
+    CSE: "from-blue-500 to-blue-700",
+    ECE: "from-purple-500 to-purple-700",
     EEE: "from-amber-500 to-amber-700",
-    MECH: "from-red-600 to-red-800",
-    CIVIL: "from-green-600 to-green-800",
+    MECH: "from-red-500 to-red-700",
+    CIVIL: "from-emerald-500 to-emerald-700",
   };
-  return colors[stream];
+  return gradients[stream] || "from-gray-500 to-gray-700";
 };
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+const StatusPill = ({ status }: { status: LeaveStatus }) => {
+  const styles = {
+    pending_pc: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", label: "Pending PC" },
+    pending_admin: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", label: "Pending Admin" },
+    approved: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", label: "Approved" },
+    declined: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", label: "Declined" },
+  };
+  const style = styles[status] || styles.pending_pc;
+
+  return (
+    <div className={`px-2.5 py-1 rounded-full border ${style.bg} ${style.border} flex items-center gap-1.5`}>
+      <div className={`w-1.5 h-1.5 rounded-full ${style.text.replace('text-', 'bg-')}`} />
+      <span className={`text-[10px] font-semibold uppercase tracking-wide ${style.text}`}>{style.label}</span>
+    </div>
+  );
 };
 
 export default function StaffPage() {
@@ -63,7 +78,6 @@ export default function StaffPage() {
   const [toDate, setToDate] = useState("");
   const [reason, setReason] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -71,84 +85,107 @@ export default function StaffPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const fetchRequests = async (stream: Stream) => {
-    const { data: rows, error: queryError } = await supabase
+    const { data: rows } = await supabase
       .from("leave_requests")
-      .select(`
-        *,
-        profiles:requested_by (
-          full_name
-        )
-      `)
+      .select(`*, profiles:requested_by (full_name)`)
       .eq("stream", stream)
       .order("created_at", { ascending: false });
-
-    if (queryError) {
-      console.error("Error fetching requests:", queryError);
-      return;
-    }
     setRequests((rows as any) ?? []);
   };
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log("[Staff] No user, redirecting to login");
+          router.replace("/login");
+          return;
+        }
 
-      if (!user) {
-        router.replace("/login");
-        return;
+        console.log("[Staff] User found:", user.id);
+
+        const { data: profiles, error: profileError } = await supabase
+          .from("profiles")
+          .select("role, stream, full_name")
+          .eq("id", user.id)
+          .limit(1);
+
+        if (profileError) {
+          console.error("[Staff] Profile fetch error:", profileError);
+          setLoading(false);
+          return;
+        }
+
+        const profile = profiles?.[0];
+        console.log("[Staff] Profile:", profile);
+
+        if (!profile || profile.role !== "staff") {
+          console.log("[Staff] Not a staff user, role:", profile?.role);
+          if (profile?.role === "admin") router.replace("/admin");
+          else if (profile?.role === "pc") router.replace("/pc");
+          else if (profile?.role === "student") router.replace("/student");
+          else router.replace("/login");
+          return;
+        }
+
+        setUserStream(profile.stream as Stream);
+        setUserId(user.id);
+        setUserName(profile.full_name || user.email?.split('@')[0] || 'User');
+        await fetchRequests(profile.stream as Stream);
+        setLoading(false);
+      } catch (err) {
+        console.error("[Staff] Error in load:", err);
+        setLoading(false);
       }
-
-      // Check DB role to ensure correctness (metadata might be stale)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, stream, full_name")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role !== "staff") {
-        if (profile?.role === "admin") router.replace("/admin");
-        else if (profile?.role === "pc") router.replace("/pc");
-        else router.replace("/login");
-        return;
-      }
-
-      const stream = profile.stream as Stream;
-      setUserStream(stream);
-      setUserId(user.id);
-      setUserName(profile.full_name || user.email?.split('@')[0] || 'User');
-
-      await fetchRequests(stream);
-      setLoading(false);
     };
-
     load();
   }, [router]);
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setSubmitting(true);
+  // Realtime Subscription
+  useEffect(() => {
+    if (!userStream) return;
+
+    console.log("Setting up realtime subscription for Staff:", userStream);
+
+    const channel = supabase
+      .channel('staff-dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leave_requests',
+          filter: `stream=eq.${userStream}`
+        },
+        (payload) => {
+          console.log("Realtime update received:", payload);
+          fetchRequests(userStream);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userStream]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null); setSuccess(null); setSubmitting(true);
 
     if (!userStream || !userId) return;
 
     let attachment_url: string | null = null;
     if (file) {
       const filePath = `${userId}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("leave_attachments")
-        .upload(filePath, file);
-      if (uploadError) {
-        setError(uploadError.message);
-        setSubmitting(false);
-        return;
-      }
-      const { data: publicUrl } = supabase.storage.from("leave_attachments").getPublicUrl(filePath);
-      attachment_url = publicUrl.publicUrl;
+      const { error: upErr } = await supabase.storage.from("leave_attachments").upload(filePath, file);
+      if (upErr) { setError(upErr.message); setSubmitting(false); return; }
+      const { data } = supabase.storage.from("leave_attachments").getPublicUrl(filePath);
+      attachment_url = data.publicUrl;
     }
 
-    const { error: insertError } = await supabase.from("leave_requests").insert({
+    const { error: insErr } = await supabase.from("leave_requests").insert({
       student_name: studentName,
       student_class: studentClass,
       reg_no: regNo,
@@ -163,305 +200,223 @@ export default function StaffPage() {
       stream: userStream,
     });
 
-    if (insertError) {
-      setError(insertError.message);
-      setSubmitting(false);
-      return;
-    }
+    if (insErr) { setError(insErr.message); setSubmitting(false); return; }
 
     await fetchRequests(userStream);
-
-    setStudentName("");
-    setStudentClass("");
-    setRegNo("");
-    setCgpa("");
-    setAttendance("");
-    setFromDate("");
-    setToDate("");
-    setReason("");
-    setFile(null);
-    setFileName("");
-    setSuccess("Leave request submitted successfully!");
+    setStudentName(""); setStudentClass(""); setRegNo(""); setCgpa(""); setAttendance("");
+    setFromDate(""); setToDate(""); setReason(""); setFile(null);
+    setSuccess("Request Submitted Successfully");
     setSubmitting(false);
     setTimeout(() => setSuccess(null), 3000);
   };
 
   const deleteRequest = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this request?")) return;
-
-    const { error: deleteError } = await supabase
-      .from("leave_requests")
-      .delete()
-      .eq("id", id);
-
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
-    }
-    await fetchRequests(userStream!);
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace("/landing");
+    if (!confirm("Delete this request?")) return;
+    await supabase.from("leave_requests").delete().eq("id", id);
+    if (userStream) await fetchRequests(userStream);
   };
 
   const stats = {
     total: requests.length,
-    pendingPC: requests.filter(r => r.status === "pending_pc").length,
-    pendingAdmin: requests.filter(r => r.status === "pending_admin").length,
+    pending: requests.filter(r => r.status.includes('pending')).length, // Group pending
     approved: requests.filter(r => r.status === "approved").length,
     declined: requests.filter(r => r.status === "declined").length,
   };
 
   const myRequests = requests.filter(r => r.requested_by === userId);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background px-4 sm:px-6 py-6 sm:py-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:gap-8 animate-fade-in">
+    <div className="min-h-screen w-full bg-[#0f172a] p-4 pb-24 relative overflow-x-hidden font-sans text-neutral-100">
+      {/* Background Ambience */}
+      <div className="absolute top-[-20%] right-[-20%] w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-5xl mx-auto space-y-8 relative z-10">
+
         {/* Header */}
-        <header className="flex items-start sm:items-center justify-between flex-wrap gap-3 sm:gap-4">
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Advisor Dashboard</h1>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              {getGreeting()}, <span className="font-semibold bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">{userName}</span>! Manage student leave requests
-            </p>
-            {userStream && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm text-muted-foreground">Department:</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getStreamColor(userStream)}`}>
-                  {userStream}
+        <header className="flex items-center justify-between pt-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-glow">
+              <User className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Hello, {userName}</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${getStreamGradient(userStream || "CSE")} text-white`}>
+                  {userStream} ADVISOR
                 </span>
               </div>
-            )}
+            </div>
           </div>
           <button
-            type="button"
-            onClick={handleSignOut}
-            className="rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-all shadow-sm min-w-[100px]"
+            onClick={() => { supabase.auth.signOut(); router.replace('/login'); }}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
           >
-            Sign out
+            <LogOut className="w-5 h-5 text-neutral-400" />
           </button>
         </header>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-card border border-border rounded-xl p-5 hover:scale-105 transition-all shadow-sm">
-            <p className="text-xs text-muted-foreground mb-1">Total Requests</p>
-            <p className="text-3xl font-bold text-foreground">{stats.total}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5 hover:scale-105 hover:shadow-glow-blue transition-all shadow-sm border-l-4 border-l-blue-500">
-            <p className="text-xs text-blue-500 mb-1">Pending PC</p>
-            <p className="text-3xl font-bold text-blue-500">{stats.pendingPC}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5 hover:scale-105 hover:shadow-glow-amber transition-all shadow-sm border-l-4 border-l-amber-500">
-            <p className="text-xs text-amber-500 mb-1">Pending Admin</p>
-            <p className="text-3xl font-bold text-amber-500">{stats.pendingAdmin}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-5 hover:scale-105 hover:shadow-glow-green transition-all shadow-sm border-l-4 border-l-emerald-500">
-            <p className="text-xs text-emerald-500 mb-1">Approved</p>
-            <p className="text-3xl font-bold text-emerald-500">{stats.approved}</p>
-          </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'Total Requests', val: stats.total, color: 'text-white' },
+            { label: 'Pending', val: stats.pending, color: 'text-amber-400' },
+            { label: 'Approved', val: stats.approved, color: 'text-emerald-400' },
+            { label: 'Declined', val: stats.declined, color: 'text-red-400' }
+          ].map((s, i) => (
+            <div key={i} className="glass p-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-white/5 transition-colors">
+              <span className={`text-2xl font-bold ${s.color}`}>{s.val}</span>
+              <span className="text-[10px] text-neutral-400 uppercase tracking-wider font-medium">{s.label}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Messages */}
-        {error && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
+        {/* Action Area */}
+        <div className="grid lg:grid-cols-[1.2fr_1.8fr] gap-6">
 
-        {success && (
-          <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-sm text-emerald-500">{success}</p>
-          </div>
-        )}
+          {/* Form Section */}
+          <div className="glass p-6 rounded-[24px]">
+            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              New Request
+            </h2>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-          {/* Request Form */}
-          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl p-6 shadow-lg h-fit">
-            <h2 className="mb-6 text-xl font-bold text-foreground">Request Leave for Student</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Student Name</label>
-                <input
-                  type="text"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  required
-                  className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                  placeholder="Enter student name"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">Class</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Student Info */}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-neutral-400 ml-1">Student Details</label>
                   <input
-                    type="text"
-                    value={studentClass}
-                    onChange={(e) => setStudentClass(e.target.value)}
+                    placeholder="Student Name"
+                    value={studentName} onChange={e => setStudentName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none transition-all"
                     required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                    placeholder="e.g., 3rd Year A"
                   />
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">Reg. No</label>
+                <div className="grid grid-cols-2 gap-3">
                   <input
-                    type="text"
-                    value={regNo}
-                    onChange={(e) => setRegNo(e.target.value)}
+                    placeholder="Reg No."
+                    value={regNo} onChange={e => setRegNo(e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none"
                     required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                    placeholder="e.g., 9100..."
+                  />
+                  <input
+                    placeholder="Class (e.g. III-A)"
+                    value={studentClass} onChange={e => setStudentClass(e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none"
+                    required
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">CGPA</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="10"
-                    value={cgpa}
-                    onChange={(e) => setCgpa(e.target.value)}
-                    required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                    placeholder="e.g., 8.5"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">Attendance %</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={attendance}
-                    onChange={(e) => setAttendance(e.target.value)}
-                    required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                    placeholder="e.g., 85.5"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <Award className="hidden" /> {/* Just to keep lucide import used */}
+                    <input
+                      type="number" step="0.01" placeholder="CGPA"
+                      value={cgpa} onChange={e => setCgpa(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number" step="0.1" placeholder="Attendance %"
+                      value={attendance} onChange={e => setAttendance(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">From Date</label>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                  />
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-neutral-500 ml-1">From</label>
+                  <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white dark:[color-scheme:dark]" required />
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">To Date</label>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    required
-                    className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring transition-all"
-                  />
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-neutral-500 ml-1">To</label>
+                  <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white dark:[color-scheme:dark]" required />
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Reason</label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg bg-input border border-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-ring transition-all resize-none"
-                  placeholder="Enter reason..."
-                />
+              <textarea
+                rows={2} placeholder="Reason for leave..."
+                value={reason} onChange={e => setReason(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary/50 focus:outline-none resize-none"
+              />
+
+              {/* File Upload Styles */}
+              <div className="relative">
+                <input type="file" id="file_upload" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
+                <label htmlFor="file_upload" className="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-white/20 rounded-xl text-neutral-400 text-sm hover:bg-white/5 cursor-pointer transition-colors">
+                  <Upload className="w-4 h-4" />
+                  {file ? file.name : "Attach Proof (Optional)"}
+                </label>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Attachment</label>
-                <input
-                  type="file"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] ?? null;
-                    setFile(f);
-                    setFileName(f ? f.name : "");
-                  }}
-                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                />
-              </div>
+              {/* Feedback Messages */}
+              {error && <p className="text-red-400 text-xs text-center bg-red-500/10 py-2 rounded-lg">{error}</p>}
+              {success && <p className="text-emerald-400 text-xs text-center bg-emerald-500/10 py-2 rounded-lg">{success}</p>}
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-lg bg-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-lg hover:shadow-glow hover:scale-[1.02] disabled:opacity-50 transition-all"
-              >
+              <button disabled={submitting}
+                className="w-full bg-gradient-to-r from-primary to-primary-dark text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all">
                 {submitting ? "Submitting..." : "Submit Request"}
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
 
-          {/* My Requests List */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
-            <h2 className="mb-6 text-xl font-bold text-foreground">My Submitted Requests</h2>
-            {myRequests.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">You haven't submitted any requests.</p>
-              </div>
-            ) : (
-              <ul className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                {myRequests.map((request) => (
-                  <li key={request.id} className="bg-card/50 border border-border/50 rounded-xl p-4 hover:bg-accent/50 transition-all">
+          {/* List Section */}
+          <div className="glass p-6 rounded-[24px] min-h-[500px]">
+            <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-between">
+              <span>Recent Requests</span>
+              <span className="text-xs font-normal text-neutral-400 bg-white/5 px-2 py-1 rounded-lg">{myRequests.length} Total</span>
+            </h2>
+
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
+              {myRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
+                  <FileText className="w-12 h-12 mb-4 opacity-20" />
+                  <p>No requests found</p>
+                </div>
+              ) : (
+                myRequests.map(req => (
+                  <div key={req.id} className="group p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-semibold text-foreground">{request.student_name}</p>
-                        <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                          <span>{request.student_class}</span>
-                          {request.reg_no && <span>• {request.reg_no}</span>}
-                        </div>
+                        <h3 className="font-bold text-white text-sm">{req.student_name}</h3>
+                        <p className="text-xs text-neutral-400">{req.student_class} • {req.reg_no}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={request.status} />
-                        <button
-                          onClick={() => deleteRequest(request.id)}
-                          className="text-xs text-destructive hover:text-destructive/80"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      <StatusPill status={req.status} />
                     </div>
-                    {request.attachment_url && (
-                      <a
-                        href={request.attachment_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block text-xs font-medium text-blue-500 hover:text-blue-400 hover:underline"
-                      >
-                        📎 View attachment
-                      </a>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Submitted {new Date(request.created_at).toLocaleDateString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
+
+                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+                      <div className="flex items-center gap-1.5 text-neutral-400">
+                        <Calendar className="w-3 h-3" />
+                        <span className="text-xs">
+                          {new Date(req.from_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - {new Date(req.to_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <div className="flex-1" />
+                      {req.attachment_url && (
+                        <a href={req.attachment_url} target="_blank" className="text-xs text-blue-400 hover:underline">View Proof</a>
+                      )}
+                      <button onClick={() => deleteRequest(req.id)} className="p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 text-neutral-500 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

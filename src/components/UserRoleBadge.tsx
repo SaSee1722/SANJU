@@ -1,14 +1,20 @@
 import { UserIcon, BriefcaseIcon, ShieldIcon } from "@/components/icons";
+import { User } from "lucide-react";
 
-type UserRole = "staff" | "pc" | "admin";
+type UserRole = "staff" | "pc" | "admin" | "student";
 
 interface UserRoleBadgeProps {
-    role: UserRole;
+    role: UserRole | string;
     className?: string;
 }
 
-const getRoleConfig = (role: UserRole) => {
-    const configs = {
+const getRoleConfig = (role: string) => {
+    const configs: Record<string, { label: string; className: string; Icon: any }> = {
+        student: {
+            label: "Student",
+            className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+            Icon: User,
+        },
         staff: {
             label: "Advisor",
             className: "bg-neutral-500/20 text-neutral-300 border-neutral-500/30",
@@ -25,11 +31,17 @@ const getRoleConfig = (role: UserRole) => {
             Icon: ShieldIcon,
         },
     };
-    return configs[role];
+
+    // Return config for role, or a default if role is unknown
+    return configs[role] || {
+        label: role || "Unknown",
+        className: "bg-gray-500/20 text-gray-400 border-gray-500/30",
+        Icon: User,
+    };
 };
 
 export default function UserRoleBadge({ role, className = "" }: UserRoleBadgeProps) {
-    const config = getRoleConfig(role);
+    const config = getRoleConfig(role || "student");
     const Icon = config.Icon;
 
     return (

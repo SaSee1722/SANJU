@@ -25,8 +25,22 @@ export default function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
+
+    // PC Appointment State
+    const [appointingUser, setAppointingUser] = useState<User | null>(null);
+    const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+
+    const DEPARTMENTS: Record<Stream, string[]> = {
+        CSE: ["CSE", "IT", "AI & DS", "AI & ML", "Cyber Security"],
+        ECE: ["ECE", "VLSI"],
+        EEE: ["EEE"],
+        MECH: ["MECH"],
+        CIVIL: ["CIVIL"]
+    };
+
 
     useEffect(() => {
         const load = async () => {
@@ -81,14 +95,18 @@ export default function AdminUsersPage() {
         setFilteredUsers(filtered);
     }, [users, roleFilter, searchQuery]);
 
-    const updateUserRole = async (userId: string, newRole: UserRole) => {
+
+    const updateUserRole = async (userId: string, newRole: UserRole, dept?: string) => {
         setError(null);
         setSuccess(null);
+
+        const updateData: any = { role: newRole };
+        if (dept !== undefined) updateData.department = dept;
 
         // Update in profiles table
         const { error: updateError } = await supabase
             .from("profiles")
-            .update({ role: newRole })
+            .update(updateData)
             .eq("id", userId);
 
         if (updateError) {
@@ -96,27 +114,27 @@ export default function AdminUsersPage() {
             return;
         }
 
-        // Also update user_metadata in auth (for consistency)
-        // Note: This requires service role key, so we'll just update profiles table
-        // The user will need to re-login for metadata to sync, or we handle it in the trigger
-
         // Update local state
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole, department: dept } : u));
 
         const user = users.find(u => u.id === userId);
         setSuccess(`Successfully updated ${user?.full_name}'s role to ${newRole.toUpperCase()}`);
 
         setTimeout(() => setSuccess(null), 3000);
+        setAppointingUser(null);
     };
 
-    const appointAsPC = (userId: string) => {
-        const confirmAppoint = window.confirm(
-            "Are you sure you want to appoint this user as Program Coordinator?"
-        );
-        if (confirmAppoint) {
-            updateUserRole(userId, "pc");
-        }
+    const initiationPC = (user: User) => {
+        setAppointingUser(user);
+        // Default to first dept of their stream
+        setSelectedDepartment(DEPARTMENTS[user.stream]?.[0] || user.stream);
     };
+
+    const confirmPCAppointment = () => {
+        if (!appointingUser) return;
+        updateUserRole(appointingUser.id, "pc", selectedDepartment);
+    };
+
 
     const removePC = (userId: string) => {
         const confirmRemove = window.confirm(
@@ -278,7 +296,7 @@ export default function AdminUsersPage() {
                                         <div className="flex gap-2">
                                             {user.role === "staff" && (
                                                 <button
-                                                    onClick={() => appointAsPC(user.id)}
+                                                    onClick={() => initiationPC(user)}
                                                     className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 hover:scale-105 transition-all whitespace-nowrap shadow-sm"
                                                 >
                                                     👔 Appoint as PC
@@ -306,6 +324,48 @@ export default function AdminUsersPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Confirm PC Modal */}
+                {appointingUser && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+                            <div className="space-y-1 text-center">
+                                <h3 className="text-xl font-bold font-foreground">Appoint Program Coordinator</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Select the department for <span className="text-primary font-bold">{appointingUser.full_name}</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase text-muted-foreground">Department</label>
+                                <select
+                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                    value={selectedDepartment}
+                                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                                >
+                                    {DEPARTMENTS[appointingUser.stream]?.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setAppointingUser(null)}
+                                    className="flex-1 px-4 py-3 rounded-xl border border-border text-muted-foreground font-medium hover:bg-accent transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmPCAppointment}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                                >
+                                    Confirm Appointment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

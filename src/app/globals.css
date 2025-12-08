@@ -29,9 +29,9 @@
 }
 
 :root {
-  /* Dark Theme Base Colors */
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  /* Dark Theme Base Colors - Reference Design */
+  --background: #0f172a; /* Slate 900 */
+  --foreground: #f8fafc; /* Slate 50 */
 
   --card: #1e293b;
   --card-foreground: #f8fafc;
@@ -39,40 +39,43 @@
   --popover: #0f172a;
   --popover-foreground: #f8fafc;
 
-  /* Vibrant Primary - Purple/Blue Gradient Feel */
-  --primary: #8b5cf6;
+  /* Primary Brand - Purple Gradient */
+  --primary: #8b5cf6; /* Purple 500 */
   --primary-foreground: #ffffff;
+  --primary-light: #a78bfa; /* Purple 400 */
+  --primary-dark: #7c3aed; /* Purple 600 */
 
-  /* Secondary - Darker Slate */
+  /* Secondary - Slate 800 */
   --secondary: #1e293b;
   --secondary-foreground: #f8fafc;
 
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
+  --muted: #334155; /* Slate 700 */
+  --muted-foreground: #94a3b8; /* Slate 400 */
 
-  --accent: #1e293b;
+  --accent: #334155;
   --accent-foreground: #f8fafc;
 
-  --destructive: #ef4444;
+  --destructive: #ef4444; /* Red 500 */
   --destructive-foreground: #ffffff;
 
-  --border: #334155;
-  --input: #334155;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.05);
   --ring: #8b5cf6;
 
-  --radius: 0.5rem;
+  --radius: 0.75rem; /* 12px */
 
-  /* Stream Colors - Adjusted for Dark Theme (Neon/Vibrant) */
-  --stream-cse-from: #3b82f6;
-  --stream-cse-to: #2563eb;
-  --stream-ece-from: #a855f7;
-  --stream-ece-to: #9333ea;
-  --stream-eee-from: #f59e0b;
-  --stream-eee-to: #d97706;
-  --stream-mech-from: #ef4444;
-  --stream-mech-to: #dc2626;
-  --stream-civil-from: #10b981;
-  --stream-civil-to: #059669;
+  /* Glass Colors */
+  --glass-light: rgba(255, 255, 255, 0.05);
+  --glass-medium: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.1);
+
+  /* Stream Gradients (Reference) */
+  --stream-cse-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  --stream-ece-gradient: linear-gradient(135deg, #a855f7, #ec4899);
+  --stream-mech-gradient: linear-gradient(135deg, #ef4444, #f97316);
+  --stream-civil-gradient: linear-gradient(135deg, #10b981, #14b8a6);
+  --stream-eee-gradient: linear-gradient(135deg, #f59e0b, #eab308);
 }
 
 body {
@@ -110,21 +113,28 @@ body {
   background: #475569;
 }
 
-/* Glassmorphism Utilities - Dark Mode */
+/* Glassmorphism Utilities - Reference Design */
 .glass {
-  background: rgba(30, 41, 59, 0.7);
+  background: var(--glass-medium);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
 
 .glass-strong {
-  background: rgba(15, 23, 42, 0.85);
+  background: var(--glass-strong);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.glass-light {
+  background: var(--glass-light);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
 }
 
 /* Text Gradients */
