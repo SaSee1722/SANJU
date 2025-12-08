@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { ArrowLeft, Filter, Search } from "lucide-react";
@@ -17,7 +17,8 @@ type LeaveRequest = {
     created_at: string;
 };
 
-export default function StudentRequests() {
+// Inner component using useSearchParams
+function StudentRequestsContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialFilter = searchParams.get("filter") || "all";
@@ -119,5 +120,14 @@ export default function StudentRequests() {
                 )}
             </div>
         </div>
+    );
+}
+
+// Main component wrapping in Suspense
+export default function StudentRequests() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>}>
+            <StudentRequestsContent />
+        </Suspense>
     );
 }
